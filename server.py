@@ -4,7 +4,7 @@ import json
 
 app = FastAPI()
 
-# Allow all origins (for testing, restrict in production)
+# Allow all origins for WebSocket connections
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,6 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Store connected WebSocket clients
 clients = set()
 
 @app.websocket("/ws")
@@ -25,10 +26,10 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             message = json.loads(data)
             
-            # Broadcast to all clients
+            # Broadcast to all clients except sender
             for client in clients:
                 if client != websocket:
-                    await client.send_text(json.dumps(message))
+                    await client.send_text(json.dumps(message, ensure_ascii=False))  # Preserve special characters
     
     except Exception as e:
         print(f"Client disconnected: {e}")
